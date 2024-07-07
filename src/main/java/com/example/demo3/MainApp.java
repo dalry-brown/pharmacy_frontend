@@ -35,6 +35,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import javafx.util.Duration;
 
 public class MainApp extends Application {
+    Integer updatedQty = 0;
     Integer inStockNum = 0;
     int count = 1;
     int buyId = 0;
@@ -45,6 +46,8 @@ public class MainApp extends Application {
         Button inventoryButton = new Button("Inventory");
         Button purchaseButton = new Button("Purchase");
         Button purchaseHistoryButton = new Button("Purchase History");
+        Button supplyButton = new Button("Supply");
+        Button suppliersButton = new Button("Suppliers");
         Label searchTitle = new Label("Pharm");
 
         // Set fixed size for the buttons
@@ -52,14 +55,18 @@ public class MainApp extends Application {
         inventoryButton.setMaxWidth(Double.MAX_VALUE);
         purchaseButton.setMaxWidth(Double.MAX_VALUE);
         purchaseHistoryButton.setMaxWidth(Double.MAX_VALUE);
+        supplyButton.setMaxWidth(Double.MAX_VALUE);
+        suppliersButton.setMaxWidth(Double.MAX_VALUE);
         dashboardButton.setPrefHeight(50);
         inventoryButton.setPrefHeight(50);
         purchaseButton.setPrefHeight(50);
         purchaseHistoryButton.setPrefHeight(50);
+        supplyButton.setPrefHeight(50);
+        suppliersButton.setPrefHeight(50);
         searchTitle.setId("searchTitle");
 
         // Create VBox container for the left section
-        VBox leftSection = new VBox(10, searchTitle, dashboardButton, inventoryButton, purchaseButton, purchaseHistoryButton);
+        VBox leftSection = new VBox(10, searchTitle, dashboardButton, inventoryButton, purchaseButton, purchaseHistoryButton, supplyButton, suppliersButton);
         leftSection.setId("leftSection");
 
         // Create StackPane container for the right section
@@ -79,12 +86,20 @@ public class MainApp extends Application {
         VBox purchaseHistoryContent = createPurchaseHistoryContent();
         purchaseHistoryContent.setId("purchaseHistoryContent");
 
+        VBox supplyContent = createAddToSuppliersContent();
+        supplyContent.setId("supplyContent");
+
+        VBox suppliersContent = new VBox();
+        suppliersContent.setId("suppliersContent");
+        suppliersContent.setStyle("-fx-background-color: green");
+
 
 
         // Set event handlers for buttons
         dashboardButton.setOnAction(event -> {
-                rightSection.getChildren().clear();
-                rightSection.getChildren().add(createScrollableDashboardContent(dashboardContent));
+            rightSection.getChildren().clear();
+            loadInventoryData(dashboardContent);
+            rightSection.getChildren().add(createScrollableDashboardContent(dashboardContent));
 
         });
 
@@ -101,6 +116,16 @@ public class MainApp extends Application {
         purchaseHistoryButton.setOnAction(actionEvent -> {
             rightSection.getChildren().clear();
             rightSection.getChildren().add(createScrollablePurchaseHistoryContent(purchaseHistoryContent));
+        });
+
+        supplyButton.setOnAction(actionEvent -> {
+            rightSection.getChildren().clear();
+            rightSection.getChildren().add(supplyContent);
+        });
+
+        suppliersButton.setOnAction(actionEvent -> {
+            rightSection.getChildren().clear();
+            rightSection.getChildren().add(suppliersContent);
         });
 
         // Create a SplitPane and add the left and right sections
@@ -120,6 +145,172 @@ public class MainApp extends Application {
 
         loadHistoryData(purchaseHistoryContent);
     }
+
+    public VBox createAddToSuppliersContent() {
+        Label name = new Label("Name");
+        name.setId("inv-name-label");
+        Label email = new Label("Email");
+        email.setId("inv-name-label");
+        Label drugName = new Label("Drug name");
+        drugName.setId("inv-category-label");
+        Label phoneNumber = new Label("Phone Number");
+        phoneNumber.setId("inv-quantity-label");
+        Label streetAddress = new Label("Street Address");
+        streetAddress.setId("inv-category-label");
+        Label country = new Label("Country");
+        country.setId("inv-category-label");
+
+        TextField nameBar = new TextField();
+        nameBar.setId("namebar");
+        TextField emailBar = new TextField();
+        emailBar.setId("namebar");
+        TextField drugNameBar = new TextField();
+        drugNameBar.setId("categorybar");
+        TextField phoneNumberBar = new TextField();
+        phoneNumberBar.setId("categorybar");
+        TextField streetAddressBar = new TextField();
+        streetAddressBar.setId("categorybar");
+        TextField countryBar = new TextField();
+        countryBar.setId("categorybar");
+
+        Button add = new Button("Supply");
+        add.setId("add-to-inv-btn");
+
+        VBox nameColumn = new VBox(0, name, nameBar);
+        VBox emailColumn = new VBox(0, email, emailBar);
+        VBox drugNameColumn = new VBox(0, drugName, drugNameBar);
+        drugNameColumn.setId("inv-category-column");
+        drugNameColumn.setPrefWidth(317);
+        VBox phoneNumberColumn = new VBox(0, phoneNumber, phoneNumberBar);
+        phoneNumberColumn.setId("inv-quantity-column");
+        phoneNumberColumn.setPrefWidth(317);
+        VBox streetAddressColumn = new VBox(0, streetAddress, streetAddressBar);
+        streetAddressColumn.setId("inv-quantity-column");
+        streetAddressColumn.setPrefWidth(317);
+        VBox countryColumn = new VBox(0, country, countryBar);
+        countryColumn.setId("inv-quantity-column");
+        countryColumn.setPrefWidth(317);
+
+        HBox secondRow = new HBox(20, drugNameColumn, phoneNumberColumn);
+        HBox thirdRow = new HBox(20, streetAddressColumn, countryColumn);
+        secondRow.setId("add-inv-second-row");
+        VBox inputBox = new VBox(0, nameColumn, secondRow, thirdRow, emailColumn);
+        VBox addToInventoryContent = new VBox(15, inputBox, add);
+
+        add.setOnAction(actionEvent -> {
+            try {
+                String nameValue = nameBar.getText();
+                String emailValue = emailBar.getText();
+                String drugNameValue = drugNameBar.getText();
+                String phoneNumberValue = phoneNumberBar.getText();
+                String streetAddressValue = streetAddressBar.getText();
+                String countryValue = countryBar.getText();
+
+                // Fetch the drug details by drug name
+                Drug drug = getDrugDetailsByName(drugNameValue);
+
+                if (drug != null) {
+                    // Make the POST request to add a supplier
+                    makeSupplierPostRequest(1, nameValue, phoneNumberValue, emailValue, streetAddressValue, countryValue, drug);
+
+                    Label label = new Label("Supplier Added Successfully");
+                    label.setTextAlignment(TextAlignment.CENTER);
+                    label.setStyle("-fx-text-fill: #76ea76; -fx-font-size: 14px;");
+                    addToInventoryContent.getChildren().add(label);
+                    showLabelForDuration(addToInventoryContent, label, Duration.seconds(2));
+                } else {
+                    Label label = new Label("Drug Not Found");
+                    label.setTextAlignment(TextAlignment.CENTER);
+                    label.setStyle("-fx-text-fill: #ea7676; -fx-font-size: 14px;");
+                    addToInventoryContent.getChildren().add(label);
+                    showLabelForDuration(addToInventoryContent, label, Duration.seconds(2));
+                }
+                nameBar.setText("");
+                emailBar.setText("");
+                drugNameBar.setText("");
+                phoneNumberBar.setText("");
+                streetAddressBar.setText("");
+                countryBar.setText("");
+            } catch (Exception ex) {
+                ex.printStackTrace();
+            }
+        });
+
+        addToInventoryContent.setId("add-to-inv-container");
+        VBox addToInventoryContainer = new VBox(addToInventoryContent);
+        addToInventoryContainer.setStyle("-fx-alignment: center");
+
+        return addToInventoryContainer;
+    }
+
+    private Drug getDrugDetailsByName(String drugName) {
+        try {
+            URL url = new URL("http://localhost:8080/drugs");
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            conn.setRequestMethod("GET");
+            conn.setRequestProperty("Accept", "application/json");
+
+            BufferedReader in = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+            String inputLine;
+            StringBuilder content = new StringBuilder();
+            while ((inputLine = in.readLine()) != null) {
+                content.append(inputLine);
+            }
+
+            in.close();
+            conn.disconnect();
+
+            ObjectMapper objectMapper = new ObjectMapper();
+            JsonNode drugs = objectMapper.readTree(content.toString());
+
+            for (JsonNode drug : drugs) {
+                if (drug.get("drugName").asText().toLowerCase().equals(drugName.toLowerCase())) {
+                    return objectMapper.treeToValue(drug, Drug.class);
+                }
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+
+    private void makeSupplierPostRequest(int supplierId, String name, String phone, String email, String streetAddress, String country, Drug drug) {
+        try {
+            URL url = new URL("http://localhost:8080/suppliers");
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            conn.setRequestMethod("POST");
+            conn.setRequestProperty("Content-Type", "application/json; utf-8");
+            conn.setRequestProperty("Accept", "application/json");
+            conn.setDoOutput(true);
+            LocalDateTime now = LocalDateTime.now();
+            DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+            DateTimeFormatter timeFormatter = DateTimeFormatter.ofPattern("HH:mm:ss");
+            String currentDate = now.format(dateFormatter);
+            String currentTime = now.format(timeFormatter);
+            Integer bId = 20;
+
+            String jsonInputString = String.format(
+                    "{\"supplierId\": %d, \"name\": \"%s\", \"phone\": \"%s\", \"email\": \"%s\", \"streetAddress\": \"%s\", \"country\": \"%s\", \"drug\": {\"id\": %d, \"drugName\": \"%s\", \"description\": \"%s\", \"quantity\": %d, \"category\": [\"%s\"], \"buyerId\": %d, \"date\": \"%s\", \"time\": \"%s\"}}",
+                    supplierId, name, phone, email, streetAddress, country, drug.getId(), drug.getDrugName(), drug.getDescription(), drug.getQuantity(), String.join("\", \"", drug.getCategory()), bId, currentDate, currentTime
+            );
+
+            try (OutputStream os = conn.getOutputStream()) {
+                byte[] input = jsonInputString.getBytes(StandardCharsets.UTF_8);
+                os.write(input, 0, input.length);
+            }
+
+            int code = conn.getResponseCode();
+            System.out.println("Response Code: " + code);
+
+            conn.disconnect();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+
 
     public VBox createAddToInventoryContent() {
         Label name = new Label("Name");
@@ -195,16 +386,6 @@ public class MainApp extends Application {
         inStockQty.setId("inv-quantity-label");
         TextField nameBar = new TextField("Drug Name");
         nameBar.setId("namebar");
-//        nameBar.textProperty().addListener(new ChangeListener<String>() {
-//
-//            @Override
-//            public void changed(ObservableValue<? extends String> observable, String oldValue, String newValue) {
-//                //System.out.println("Text changed from " + oldValue + " to " + newValue);
-//                label.setText(nameBar.getText());
-//                // You can add your logic here to handle the text change event
-//                // For example, you can make a GET request to fetch the drug details
-//            }
-//        });
         TextField purchaseQtyBar = new TextField("0");
         purchaseQtyBar.setId("categorybar");
         TextField inStockQtyBar = new TextField();
@@ -230,7 +411,7 @@ public class MainApp extends Application {
             public void changed(ObservableValue<? extends String> observable, String oldValue, String newValue) {
                 String nameValue = nameBar.getText();
                 String qtyValue = purchaseQtyBar.getText();
-                getDrugDetails(nameValue, Integer.valueOf(qtyValue));
+                getDrugDetails(updatedQty, nameValue, Integer.valueOf(qtyValue));
                 inStockQtyBar.setText(String.valueOf(inStockNum));
                 //System.out.println("Text changed from " + oldValue + " to " + newValue);
                 // You can add your logic here to handle the text change event
@@ -241,7 +422,8 @@ public class MainApp extends Application {
             try {
                 String nameValue = nameBar.getText();
                 Integer qtyValue = Integer.parseInt(purchaseQtyBar.getText());
-                getDrugDetails(nameValue, qtyValue);
+                updatedQty = Integer.parseInt(inStockQtyBar.getText()) - qtyValue;
+                getDrugDetails(updatedQty, nameValue, qtyValue);
                 Label label = new Label("Purchase Successful");
                 label.setTextAlignment(TextAlignment.CENTER);
                 label.setStyle("-fx-text-fill: #76ea76; -fx-font-size: 14px;");
@@ -274,7 +456,7 @@ public class MainApp extends Application {
         pause.play();
     }
 
-    private void getDrugDetails(String drugName, Integer quantityVal) {
+    private void getDrugDetails(Integer updatedQty, String drugName, Integer quantityVal) {
         try {
             URL url = new URL("http://localhost:8080/drugs");
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
@@ -297,10 +479,11 @@ public class MainApp extends Application {
 
             // Find the drug by name
             JsonNode foundDrug = null;
+
             for (JsonNode drug : drugs) {
                 if (drug.get("drugName").asText().toLowerCase().equals(drugName.toLowerCase())) {
                     foundDrug = drug;
-                    inStockNum = Integer.parseInt(String.valueOf(drug.get("quantity")));
+                    inStockNum = drug.get("quantity").asInt();
                     break;
                 }
             }
@@ -315,8 +498,26 @@ public class MainApp extends Application {
                 buyId += 1;
                 Integer buyerIdentity = buyId;
 
+                System.out.println(foundDrug.get("drugName").asText());
+
                 // Make the POST request to create a purchase
                 makePurchasePostRequest(buyerIdentity, foundDrug, currentDate, currentTime, quantityVal);
+
+                // Update the drug information
+                String category = foundDrug.get("category").isArray() ?
+                        String.join(", ", objectMapper.convertValue(foundDrug.get("category"), List.class)) :
+                        foundDrug.get("category").asText();
+
+                makeDrugUpdate(
+                        foundDrug.get("id").asInt(),
+                        foundDrug.get("drugName").asText(),
+                        foundDrug.get("description").asText(),
+                        updatedQty,
+                        category,
+                        buyerIdentity,
+                        currentDate,
+                        currentTime
+                );
             } else {
                 inStockNum = 0;
             }
@@ -364,6 +565,34 @@ public class MainApp extends Application {
 
             String jsonInputString = String.format(
                     "{\"drugName\": \"%s\", \"description\": \"%s\", \"quantity\": \"%d\", \"category\": [\"%s\"], \"buyerId\": %d, \"date\": \"%s\", \"time\": \"%s\"}",
+                    drugName, description, quantity, category, buyerId, date, time
+            );
+
+            try (OutputStream os = conn.getOutputStream()) {
+                byte[] input = jsonInputString.getBytes(StandardCharsets.UTF_8);
+                os.write(input, 0, input.length);
+            }
+
+            int code = conn.getResponseCode();
+            System.out.println("Response Code: " + code);
+
+            conn.disconnect();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void makeDrugUpdate(int drugId, String drugName, String description, int quantity, String category, int buyerId, String date, String time) {
+        try {
+            URL url = new URL("http://localhost:8080/drugs/" + String.valueOf(drugId));
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            conn.setRequestMethod("PUT");
+            conn.setRequestProperty("Content-Type", "application/json; utf-8");
+            conn.setRequestProperty("Accept", "application/json");
+            conn.setDoOutput(true);
+
+            String jsonInputString = String.format(
+                    "{\"drugName\": \"%s\", \"description\": \"%s\", \"quantity\": %d, \"category\": [\"%s\"], \"buyerId\": %d, \"date\": \"%s\", \"time\": \"%s\"}",
                     drugName, description, quantity, category, buyerId, date, time
             );
 
@@ -434,7 +663,7 @@ public class MainApp extends Application {
         headerPane.add(qtyHeader, 3, 0);
 
         Label categoryHeader = new Label("Category");
-        categoryHeader.setStyle("-fx-text-fill: #ffffff; -fx-font-size: 14px");
+        categoryHeader.setStyle("-fx-text-fill: #ffffff; -fx-font-size: 14px;");
         headerPane.add(categoryHeader, 4, 0);
 
 
@@ -442,7 +671,7 @@ public class MainApp extends Application {
         VBox drugList = new VBox(0);
         drugList.setId("drugList"); // Set an ID for drugList
 
-        VBox dashboardContent = new VBox(10, dashboardTitle, searchContainer,headerPane, drugList);
+        VBox dashboardContent = new VBox(10, dashboardTitle, searchContainer, headerPane, drugList);
         dashboardContent.setId("dash-content");
         dashboardContent.setPrefHeight(2000);
         VBox dashboardContainer = new VBox(dashboardContent);
@@ -523,40 +752,37 @@ public class MainApp extends Application {
             Drug drug = drugs.get(i);
 
             Label idData= new Label(String.valueOf(drug.getId()));
-            idData.setStyle("-fx-text-fill: #ffffff; -fx-font-size: 14px");
+            idData.getStyleClass().add("data-pane-row");
             dataPane.add(idData, 0, i+1);
 
             Label nameData = new Label(drug.getDrugName());
-            nameData.setStyle("-fx-text-fill: #ffffff; -fx-font-size: 14px");
+            nameData.getStyleClass().add("data-pane-row");
             dataPane.add(nameData, 1, i+1);
 
             Label descriptionData = new Label(drug.getDescription());
-            descriptionData.setStyle("-fx-text-fill: #ffffff; -fx-font-size: 14px");
+            descriptionData.getStyleClass().add("data-pane-row");
             dataPane.add(descriptionData, 2, i+1);
 
             Label qtyData = new Label(String.valueOf(drug.getQuantity()));
-            qtyData.setStyle("-fx-text-fill: #ffffff; -fx-font-size: 14px");
+            qtyData.getStyleClass().add("data-pane-row");
             dataPane.add(qtyData, 3, i+1);
 
             Label categoryData= new Label(String.join(", ", drug.getCategory()));
-            categoryData.setStyle("-fx-text-fill: #ffffff; -fx-font-size: 14px");
+            categoryData.getStyleClass().add("data-pane-row");
             dataPane.add(categoryData, 4, i+1);
 
         }
 
-        VBox node1 = (VBox) dashboardContent.getChildren().getLast();
-        node1.getChildren().add(dataPane);
-
-        //I need to set drugList to add dataPane
-//        for (javafx.scene.Node node : dashboardContent.getChildren()) {
-//            if (node instanceof VBox) {
-//                VBox vbox = (VBox) node;
-//                if ("drugList".equals(vbox.getId())) {
-//                    vbox.getChildren().add(dataPane);
-//                    break;
-//                }
-//            }
-//        }
+//        VBox node1 = (VBox) dashboardContent.getChildren().getLast();
+//            node1.getChildren().;
+//        node1.getChildren().add(dataPane);
+        VBox node = (VBox) dashboardContent.lookup("#drugList");
+       if(node != null) {
+           node.getChildren().clear();
+           node.getChildren().add(dataPane);
+       } else{
+           System.out.println("empty node");
+       }
     }
 
     private String truncateDescription(String description) {
@@ -747,12 +973,14 @@ public class MainApp extends Application {
 
         }
 
-//        purchaseHistoryContent.getChildren().add(gridPane);
-//        VBox node1 = (VBox) dashboardContent.getChildren().getLast();
-//        node1.getChildren().add(dataPane);
 
-        VBox node2 = (VBox) purchaseHistoryContent.getChildren().getLast();
-        node2.getChildren().add(gridPane);
+        VBox node = (VBox) purchaseHistoryContent.lookup("#purchaseList");
+        if(node != null) {
+            node.getChildren().clear();
+            node.getChildren().add(gridPane);
+        } else{
+            System.out.println("empty node");
+        }
 
     }
 
@@ -769,6 +997,21 @@ class Drug {
     private String description;
     private int quantity;
     private List<String> category;
+    private Integer buyerId;
+    private String date;
+    private String time;
+
+    public Integer getBuyerId() {
+        return buyerId;
+    }
+
+    public String getDate() {
+        return date;
+    }
+
+    public String getTime() {
+        return time;
+    }
 
     public int getId() {
         return id;

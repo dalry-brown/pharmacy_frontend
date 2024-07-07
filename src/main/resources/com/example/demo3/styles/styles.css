@@ -62,6 +62,10 @@
 #purchase-history-content{
     -fx-background-color: #DAE7CA;
 }
+
+#supplyContent{
+    -fx-background-color: #DAE7CA;
+}
 #dash-content{
     -fx-background-color: #DAE7CA;
 }
@@ -78,8 +82,11 @@
 }
 
 #search-btn {
-    -fx-font-size: 15px;
     -fx-max-height: 42px;
+    -fx-font-size: 14px;
+    -fx-background-color: #C4C8BB;
+    -fx-text-fill: white;
+    -fx-border-width: 1px;
 }
 
 #searchTitle {
@@ -166,6 +173,15 @@
     -fx-border-radius: 15px;
     -fx-background-radius: 15px;
 }
+
+.data-pane-row{
+    -fx-text-fill: #ffffff;
+    -fx-font-size: 14px;
+}
+
+/*#drugList{*/
+/*    -fx-background-color: red;*/
+/*}*/
 
 /*#dash-content{*/
 /*    -fx-background-color: red;*/

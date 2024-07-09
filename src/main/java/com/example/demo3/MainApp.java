@@ -89,9 +89,8 @@ public class MainApp extends Application {
         VBox supplyContent = createAddToSuppliersContent();
         supplyContent.setId("supplyContent");
 
-        VBox suppliersContent = new VBox();
+        VBox suppliersContent = createSuppliersContent();
         suppliersContent.setId("suppliersContent");
-        suppliersContent.setStyle("-fx-background-color: green");
 
 
 
@@ -115,6 +114,7 @@ public class MainApp extends Application {
 
         purchaseHistoryButton.setOnAction(actionEvent -> {
             rightSection.getChildren().clear();
+            loadHistoryData(purchaseHistoryContent);
             rightSection.getChildren().add(createScrollablePurchaseHistoryContent(purchaseHistoryContent));
         });
 
@@ -125,7 +125,8 @@ public class MainApp extends Application {
 
         suppliersButton.setOnAction(actionEvent -> {
             rightSection.getChildren().clear();
-            rightSection.getChildren().add(suppliersContent);
+            loadSupplierData(suppliersContent);
+            rightSection.getChildren().add(createScrollableSuppliersContent(suppliersContent));
         });
 
         // Create a SplitPane and add the left and right sections
@@ -144,6 +145,195 @@ public class MainApp extends Application {
         loadInventoryData(dashboardContent);
 
         loadHistoryData(purchaseHistoryContent);
+
+        loadSupplierData(suppliersContent);
+    }
+
+    private VBox createSuppliersContent() {
+        Label suppliersTitle = new Label("Suppliers");
+        suppliersTitle.setId("dashboard-title");
+        TextField searchBar = new TextField();
+        searchBar.setPromptText("Search for suppliers");
+        searchBar.setPrefWidth(480 * 0.6);
+        searchBar.setPrefHeight(30);
+        Button searchButton = new Button("Search");
+        searchButton.setPrefHeight(30);
+        searchButton.setId("search-btn");
+        HBox searchContainer = new HBox(10, searchBar, searchButton);
+
+        GridPane headerPane = new GridPane();
+        headerPane.getStyleClass().add("header-pane"); // Apply CSS class to GridPane
+
+        // Define column constraints to match .5fr, 2fr, 1fr, 1fr, 2fr, 1fr, 3fr
+        ColumnConstraints col1 = new ColumnConstraints();
+        col1.setPercentWidth(5); // .5fr equivalent
+
+        ColumnConstraints col2 = new ColumnConstraints();
+        col2.setPercentWidth(20); // 2fr equivalent
+
+        ColumnConstraints col3 = new ColumnConstraints();
+        col3.setPercentWidth(10); // 1fr equivalent
+
+        ColumnConstraints col4 = new ColumnConstraints();
+        col4.setPercentWidth(10); // 1fr equivalent
+
+        ColumnConstraints col5 = new ColumnConstraints();
+        col5.setPercentWidth(20); // 1fr equivalent
+
+        ColumnConstraints col6 = new ColumnConstraints();
+        col6.setPercentWidth(10); // 1fr equivalent
+
+        ColumnConstraints col7 = new ColumnConstraints();
+        col7.setPercentWidth(35); // 3fr equivalent
+
+        // Add column constraints to the GridPane
+        headerPane.getColumnConstraints().addAll(col1, col2, col3, col4, col5, col6, col7);
+
+        // Create and add labels
+        Label idHeader = new Label("Sup. ID");
+        idHeader.setStyle("-fx-text-fill: #ffffff; -fx-font-size: 14px");
+        headerPane.add(idHeader, 0, 0);
+
+        Label nameHeader = new Label("Sup. Name");
+        nameHeader.setStyle("-fx-text-fill: #ffffff; -fx-font-size: 14px");
+        headerPane.add(nameHeader, 1, 0);
+
+        Label drugNameHeader = new Label("Drug Name");
+        drugNameHeader.setStyle("-fx-text-fill: #ffffff; -fx-font-size: 14px");
+        headerPane.add(drugNameHeader, 2, 0);
+
+        Label phoneNumberHeader = new Label("Phone Number");
+        phoneNumberHeader.setStyle("-fx-text-fill: #ffffff; -fx-font-size: 14px");
+        headerPane.add(phoneNumberHeader, 3, 0);
+
+        Label addressHeader = new Label("Street Address");
+        addressHeader.setStyle("-fx-text-fill: #ffffff; -fx-font-size: 14px");
+        headerPane.add(addressHeader, 4, 0);
+
+        Label countryHeader = new Label("Country");
+        countryHeader.setStyle("-fx-text-fill: #ffffff; -fx-font-size: 14px");
+        headerPane.add(countryHeader, 5, 0);
+
+        Label emailHeader = new Label("Email");
+        emailHeader.setStyle("-fx-text-fill: #ffffff; -fx-font-size: 14px");
+        headerPane.add(emailHeader, 6, 0);
+
+        VBox supplierList = new VBox(0);
+        supplierList.setId("supplierList"); // Set an ID for supplierList
+
+        VBox suppliersContent = new VBox(10, suppliersTitle, searchContainer, headerPane, supplierList);
+        suppliersContent.setId("dash-content");
+        suppliersContent.setPrefHeight(2000);
+        VBox suppliersContainer = new VBox(suppliersContent);
+        return suppliersContainer;
+    }
+
+    private ScrollPane createScrollableSuppliersContent(VBox supplierContent) {
+        ScrollPane scrollPane = new ScrollPane(supplierContent);
+        scrollPane.setFitToWidth(true);
+        return scrollPane;
+    }
+    private void loadSupplierData(VBox suppliersContent) {
+        new Thread(() -> {
+            try {
+                URL url = new URL("http://localhost:8080/suppliers"); // Replace with your actual API URL
+                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+                conn.setRequestMethod("GET");
+                conn.setRequestProperty("Accept", "application/json");
+
+                if (conn.getResponseCode() != 200) {
+                    throw new RuntimeException("Failed : HTTP error code : " + conn.getResponseCode());
+                }
+
+                BufferedReader br = new BufferedReader(new InputStreamReader((conn.getInputStream())));
+
+                StringBuilder sb = new StringBuilder();
+                String output;
+                while ((output = br.readLine()) != null) {
+                    sb.append(output);
+                }
+
+                conn.disconnect();
+
+                Gson gson = new Gson();
+                Type listType = new TypeToken<List<Supplier>>() {}.getType();
+                List<Supplier> suppliers = gson.fromJson(sb.toString(), listType);
+
+                javafx.application.Platform.runLater(() -> updateSuppliersContent(suppliersContent, suppliers));
+
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }).start();
+    }
+
+    private void updateSuppliersContent(VBox suppliersContent, List<Supplier> suppliers) {
+        GridPane gridPane = new GridPane();
+
+        ColumnConstraints col1 = new ColumnConstraints();
+        col1.setPercentWidth(5); // 0.5fr equivalent
+
+        ColumnConstraints col2 = new ColumnConstraints();
+        col2.setPercentWidth(20); // 2fr equivalent
+
+        ColumnConstraints col3 = new ColumnConstraints();
+        col3.setPercentWidth(10); // 1fr equivalent
+
+        ColumnConstraints col4 = new ColumnConstraints();
+        col4.setPercentWidth(10); // 1fr equivalent
+
+        ColumnConstraints col5 = new ColumnConstraints();
+        col5.setPercentWidth(20); // 1fr equivalent
+
+        ColumnConstraints col6 = new ColumnConstraints();
+        col6.setPercentWidth(10); // 1fr equivalent
+
+        ColumnConstraints col7 = new ColumnConstraints();
+        col7.setPercentWidth(35); // 3fr equivalent
+
+        gridPane.getColumnConstraints().addAll(col1, col2, col3, col4, col5, col6, col7);
+        gridPane.getStyleClass().add("data-pane");
+
+        // Add rows for each supplier
+        for (int i = 0; i < suppliers.size(); i++) {
+            Supplier supplier = suppliers.get(i);
+
+            Label supIdLabel = new Label(String.valueOf(supplier.getSupplierId()));
+            supIdLabel.setStyle("-fx-text-fill: #ffffff; -fx-font-size: 14px");
+            gridPane.add(supIdLabel, 0, i + 1);
+
+            Label supNameLabel = new Label(supplier.getName());
+            supNameLabel.setStyle("-fx-text-fill: #ffffff; -fx-font-size: 14px");
+            gridPane.add(supNameLabel, 1, i + 1);
+
+            Label drugNameLabel = new Label(supplier.getDrug().getDrugName());
+            drugNameLabel.setStyle("-fx-text-fill: #ffffff; -fx-font-size: 14px");
+            gridPane.add(drugNameLabel, 2, i + 1);
+
+            Label phoneNumberLabel = new Label(supplier.getPhone());
+            phoneNumberLabel.setStyle("-fx-text-fill: #ffffff; -fx-font-size: 14px");
+            gridPane.add(phoneNumberLabel, 3, i + 1);
+
+            Label addressLabel = new Label(supplier.getStreetAddress());
+            addressLabel.setStyle("-fx-text-fill: #ffffff; -fx-font-size: 14px");
+            gridPane.add(addressLabel, 4, i + 1);
+
+            Label countryLabel = new Label(supplier.getCountry());
+            countryLabel.setStyle("-fx-text-fill: #ffffff; -fx-font-size: 14px");
+            gridPane.add(countryLabel, 5, i + 1);
+
+            Label emailLabel = new Label(supplier.getEmail());
+            emailLabel.setStyle("-fx-text-fill: #ffffff; -fx-font-size: 14px");
+            gridPane.add(emailLabel, 6, i + 1);
+        }
+
+        VBox node = (VBox) suppliersContent.lookup("#supplierList");
+        if(node != null) {
+            node.getChildren().clear();
+            node.getChildren().add(gridPane);
+        } else{
+            System.out.println("empty node");
+        }
     }
 
     public VBox createAddToSuppliersContent() {
@@ -211,7 +401,7 @@ public class MainApp extends Application {
 
                 if (drug != null) {
                     // Make the POST request to add a supplier
-                    makeSupplierPostRequest(1, nameValue, phoneNumberValue, emailValue, streetAddressValue, countryValue, drug);
+                    makeSupplierPostRequest(nameValue, phoneNumberValue, emailValue, streetAddressValue, countryValue, drug);
 
                     Label label = new Label("Supplier Added Successfully");
                     label.setTextAlignment(TextAlignment.CENTER);
@@ -274,9 +464,8 @@ public class MainApp extends Application {
         }
         return null;
     }
-
-
-    private void makeSupplierPostRequest(int supplierId, String name, String phone, String email, String streetAddress, String country, Drug drug) {
+    
+    private void makeSupplierPostRequest(String name, String phone, String email, String streetAddress, String country, Drug drug) {
         try {
             URL url = new URL("http://localhost:8080/suppliers");
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
@@ -292,8 +481,8 @@ public class MainApp extends Application {
             Integer bId = 20;
 
             String jsonInputString = String.format(
-                    "{\"supplierId\": %d, \"name\": \"%s\", \"phone\": \"%s\", \"email\": \"%s\", \"streetAddress\": \"%s\", \"country\": \"%s\", \"drug\": {\"id\": %d, \"drugName\": \"%s\", \"description\": \"%s\", \"quantity\": %d, \"category\": [\"%s\"], \"buyerId\": %d, \"date\": \"%s\", \"time\": \"%s\"}}",
-                    supplierId, name, phone, email, streetAddress, country, drug.getId(), drug.getDrugName(), drug.getDescription(), drug.getQuantity(), String.join("\", \"", drug.getCategory()), bId, currentDate, currentTime
+                    "{\"name\": \"%s\", \"phone\": \"%s\", \"email\": \"%s\", \"streetAddress\": \"%s\", \"country\": \"%s\", \"drug\": {\"id\": %d, \"drugName\": \"%s\", \"description\": \"%s\", \"quantity\": %d, \"category\": [\"%s\"], \"buyerId\": %d, \"date\": \"%s\", \"time\": \"%s\"}}",
+                    name, phone, email, streetAddress, country, drug.getId(), drug.getDrugName(), drug.getDescription(), drug.getQuantity(), String.join("\", \"", drug.getCategory()), bId, currentDate, currentTime
             );
 
             try (OutputStream os = conn.getOutputStream()) {
@@ -309,8 +498,6 @@ public class MainApp extends Application {
             e.printStackTrace();
         }
     }
-
-
 
     public VBox createAddToInventoryContent() {
         Label name = new Label("Name");
@@ -984,7 +1171,6 @@ public class MainApp extends Application {
 
     }
 
-
     public static void main(String[] args) {
         launch();
     }
@@ -1065,5 +1251,72 @@ class Purchase {
 
     public Integer getQuantity() {
         return quantity;
+    }
+}
+
+class Supplier {
+    private int supplierId;
+    private String name;
+    private String phone;
+    private String email;
+    private String streetAddress;
+    private String country;
+    private Drug drug;
+
+    // Getters and setters
+    public int getSupplierId() {
+        return supplierId;
+    }
+
+    public void setSupplierId(int supplierId) {
+        this.supplierId = supplierId;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public String getPhone() {
+        return phone;
+    }
+
+    public void setPhone(String phone) {
+        this.phone = phone;
+    }
+
+    public String getEmail() {
+        return email;
+    }
+
+    public void setEmail(String email) {
+        this.email = email;
+    }
+
+    public String getStreetAddress() {
+        return streetAddress;
+    }
+
+    public void setStreetAddress(String streetAddress) {
+        this.streetAddress = streetAddress;
+    }
+
+    public String getCountry() {
+        return country;
+    }
+
+    public void setCountry(String country) {
+        this.country = country;
+    }
+
+    public Drug getDrug() {
+        return drug;
+    }
+
+    public void setDrug(Drug drug) {
+        this.drug = drug;
     }
 }

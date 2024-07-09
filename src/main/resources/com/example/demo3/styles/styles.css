@@ -63,9 +63,6 @@
     -fx-background-color: #DAE7CA;
 }
 
-#supplyContent{
-    -fx-background-color: #DAE7CA;
-}
 #dash-content{
     -fx-background-color: #DAE7CA;
 }
@@ -100,6 +97,16 @@
     -fx-pref-width: 100%;
     -fx-pref-height: 50px;
     -fx-border-radius: 12px;
+}
+
+#supplyContent{
+    -fx-background-color: #DAE7CA;
+    -fx-padding: 20;
+}
+
+#suppliersContent{
+    -fx-background-color: #DAE7CA;
+    -fx-padding: 20;
 }
 
 /* Set the background color for the dashboard content */
@@ -160,7 +167,6 @@
     -fx-padding: 10px;
     -fx-background-color: #44483E;
     /*-fx-hgap: 50px;*/
-    /*-fx-alignment: center-left;*/
     -fx-border-radius: 15px;
     -fx-background-radius: 15px;
 }

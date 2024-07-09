@@ -81,9 +81,13 @@
 #search-btn {
     -fx-max-height: 42px;
     -fx-font-size: 14px;
-    -fx-background-color: #C4C8BB;
+    -fx-background-color: #44483E;
     -fx-text-fill: white;
     -fx-border-width: 1px;
+}
+
+#search-field{
+    -fx-background-color: #74796D;
 }
 
 #searchTitle {

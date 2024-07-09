@@ -30,6 +30,8 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Objects;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.JsonNode;
 import javafx.util.Duration;
@@ -37,13 +39,16 @@ import javafx.util.Duration;
 public class MainApp extends Application {
     Integer updatedQty = 0;
     Integer inStockNum = 0;
+    Boolean additionalDrugParameter = false;
+    Boolean additionalPurchaseParameter = false;
+    Boolean additionalSupplyParameter = false;
     int count = 1;
     int buyId = 0;
     @Override
     public void start(Stage primaryStage) throws Exception {
         // Create buttons for the left section
         Button dashboardButton = new Button("Dashboard");
-        Button inventoryButton = new Button("Inventory");
+        Button inventoryButton = new Button("Add Drugs");
         Button purchaseButton = new Button("Purchase");
         Button purchaseHistoryButton = new Button("Purchase History");
         Button supplyButton = new Button("Supply");
@@ -66,7 +71,7 @@ public class MainApp extends Application {
         searchTitle.setId("searchTitle");
 
         // Create VBox container for the left section
-        VBox leftSection = new VBox(10, searchTitle, dashboardButton, inventoryButton, purchaseButton, purchaseHistoryButton, supplyButton, suppliersButton);
+        VBox leftSection = new VBox(10, searchTitle, dashboardButton, inventoryButton, purchaseHistoryButton, purchaseButton, suppliersButton, supplyButton);
         leftSection.setId("leftSection");
 
         // Create StackPane container for the right section
@@ -97,7 +102,7 @@ public class MainApp extends Application {
         // Set event handlers for buttons
         dashboardButton.setOnAction(event -> {
             rightSection.getChildren().clear();
-            loadInventoryData(dashboardContent);
+            loadInventoryData(dashboardContent, null);
             rightSection.getChildren().add(createScrollableDashboardContent(dashboardContent));
 
         });
@@ -114,7 +119,7 @@ public class MainApp extends Application {
 
         purchaseHistoryButton.setOnAction(actionEvent -> {
             rightSection.getChildren().clear();
-            loadHistoryData(purchaseHistoryContent);
+            loadHistoryData(purchaseHistoryContent, null);
             rightSection.getChildren().add(createScrollablePurchaseHistoryContent(purchaseHistoryContent));
         });
 
@@ -125,7 +130,7 @@ public class MainApp extends Application {
 
         suppliersButton.setOnAction(actionEvent -> {
             rightSection.getChildren().clear();
-            loadSupplierData(suppliersContent);
+            loadSupplierData(suppliersContent, null);
             rightSection.getChildren().add(createScrollableSuppliersContent(suppliersContent));
         });
 
@@ -142,11 +147,11 @@ public class MainApp extends Application {
         primaryStage.show();
 
         // Load data and update the dashboardContent
-        loadInventoryData(dashboardContent);
+        loadInventoryData(dashboardContent, null);
 
-        loadHistoryData(purchaseHistoryContent);
+        loadHistoryData(purchaseHistoryContent, null);
 
-        loadSupplierData(suppliersContent);
+        loadSupplierData(suppliersContent, null);
     }
 
     private VBox createSuppliersContent() {
@@ -156,6 +161,7 @@ public class MainApp extends Application {
         searchBar.setPromptText("Search for suppliers");
         searchBar.setPrefWidth(480 * 0.6);
         searchBar.setPrefHeight(30);
+        searchBar.setId("search-field");
         Button searchButton = new Button("Search");
         searchButton.setPrefHeight(30);
         searchButton.setId("search-btn");
@@ -224,6 +230,25 @@ public class MainApp extends Application {
         VBox suppliersContent = new VBox(10, suppliersTitle, searchContainer, headerPane, supplierList);
         suppliersContent.setId("dash-content");
         suppliersContent.setPrefHeight(2000);
+
+        searchBar.textProperty().addListener(new ChangeListener<String>() {
+            @Override
+            public void changed(ObservableValue<? extends String> observableValue, String s, String t1) {
+                if(Objects.equals(searchBar.getText(), "")){
+                    additionalSupplyParameter = false;
+                    loadSupplierData(suppliersContent, null);
+                }
+            }
+        });
+        searchButton.setOnAction(actionEvent -> {
+            if(Objects.equals(searchBar.getText(), "")){
+                additionalSupplyParameter = false;
+                loadSupplierData(suppliersContent, null);
+            }
+            additionalSupplyParameter = true;
+            loadSupplierData(suppliersContent, searchBar.getText());
+        });
+
         VBox suppliersContainer = new VBox(suppliersContent);
         return suppliersContainer;
     }
@@ -233,10 +258,16 @@ public class MainApp extends Application {
         scrollPane.setFitToWidth(true);
         return scrollPane;
     }
-    private void loadSupplierData(VBox suppliersContent) {
+    private void loadSupplierData(VBox suppliersContent, String addedParam) {
         new Thread(() -> {
             try {
-                URL url = new URL("http://localhost:8080/suppliers"); // Replace with your actual API URL
+                URL url = new URL("http://localhost:8080/suppliers");
+                if(addedParam == null){
+                    url = new URL("http://localhost:8080/suppliers");
+                }
+                if (additionalSupplyParameter){
+                    url = new URL("http://localhost:8080/suppliers/"+ addedParam);
+                }
                 HttpURLConnection conn = (HttpURLConnection) url.openConnection();
                 conn.setRequestMethod("GET");
                 conn.setRequestProperty("Accept", "application/json");
@@ -596,9 +627,10 @@ public class MainApp extends Application {
 
             @Override
             public void changed(ObservableValue<? extends String> observable, String oldValue, String newValue) {
+                Boolean post = false;
                 String nameValue = nameBar.getText();
                 String qtyValue = purchaseQtyBar.getText();
-                getDrugDetails(updatedQty, nameValue, Integer.valueOf(qtyValue));
+                getDrugDetails(updatedQty, nameValue, Integer.valueOf(qtyValue), post);
                 inStockQtyBar.setText(String.valueOf(inStockNum));
                 //System.out.println("Text changed from " + oldValue + " to " + newValue);
                 // You can add your logic here to handle the text change event
@@ -607,10 +639,11 @@ public class MainApp extends Application {
         });
         add.setOnAction(actionEvent -> {
             try {
+                Boolean post = true;
                 String nameValue = nameBar.getText();
                 Integer qtyValue = Integer.parseInt(purchaseQtyBar.getText());
                 updatedQty = Integer.parseInt(inStockQtyBar.getText()) - qtyValue;
-                getDrugDetails(updatedQty, nameValue, qtyValue);
+                getDrugDetails(updatedQty, nameValue, qtyValue, post);
                 Label label = new Label("Purchase Successful");
                 label.setTextAlignment(TextAlignment.CENTER);
                 label.setStyle("-fx-text-fill: #76ea76; -fx-font-size: 14px;");
@@ -643,7 +676,7 @@ public class MainApp extends Application {
         pause.play();
     }
 
-    private void getDrugDetails(Integer updatedQty, String drugName, Integer quantityVal) {
+    private void getDrugDetails(Integer updatedQty, String drugName, Integer quantityVal, Boolean post) {
         try {
             URL url = new URL("http://localhost:8080/drugs");
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
@@ -688,7 +721,9 @@ public class MainApp extends Application {
                 System.out.println(foundDrug.get("drugName").asText());
 
                 // Make the POST request to create a purchase
-                makePurchasePostRequest(buyerIdentity, foundDrug, currentDate, currentTime, quantityVal);
+                if(post) {
+                    makePurchasePostRequest(buyerIdentity, foundDrug, currentDate, currentTime, quantityVal);
+                }
 
                 // Update the drug information
                 String category = foundDrug.get("category").isArray() ?
@@ -723,7 +758,7 @@ public class MainApp extends Application {
             conn.setDoOutput(true);
 
             String jsonInputString = String.format(
-                    "{\"purchaseId\": 3, \"buyerId\": %s, \"drug\": %s, \"quantity\": %s, \"date\": \"%s\", \"time\": \"%s\"}",
+                    "{\"buyerId\": %s, \"drug\": %s, \"quantity\": %s, \"date\": \"%s\", \"time\": \"%s\"}",
                     buyerIdentity, drug.toString(), quantityVal, currentDate, currentTime
             );
 
@@ -804,11 +839,12 @@ public class MainApp extends Application {
         searchBar.setPromptText("Search for drugs");
         searchBar.setPrefWidth(480 * 0.6);
         searchBar.setPrefHeight(30);
+        searchBar.setId("search-field");
         Button searchButton = new Button("Search");
         searchButton.setPrefHeight(30);
         searchButton.setId("search-btn");
+        searchButton.setStyle("-fx-background-color: #44483E");
         HBox searchContainer = new HBox(10, searchBar, searchButton);
-
 
         GridPane headerPane = new GridPane();
         headerPane.getStyleClass().add("header-pane"); // Apply CSS class to GridPane
@@ -853,14 +889,29 @@ public class MainApp extends Application {
         categoryHeader.setStyle("-fx-text-fill: #ffffff; -fx-font-size: 14px;");
         headerPane.add(categoryHeader, 4, 0);
 
-
-
         VBox drugList = new VBox(0);
         drugList.setId("drugList"); // Set an ID for drugList
 
         VBox dashboardContent = new VBox(10, dashboardTitle, searchContainer, headerPane, drugList);
         dashboardContent.setId("dash-content");
         dashboardContent.setPrefHeight(2000);
+        searchBar.textProperty().addListener(new ChangeListener<String>() {
+            @Override
+            public void changed(ObservableValue<? extends String> observableValue, String s, String t1) {
+                if(Objects.equals(searchBar.getText(), "")){
+                    additionalDrugParameter = false;
+                    loadInventoryData(dashboardContent, null);
+                }
+            }
+        });
+        searchButton.setOnAction(actionEvent -> {
+            if(Objects.equals(searchBar.getText(), "")){
+                additionalDrugParameter = false;
+                loadInventoryData(dashboardContent, null);
+            }
+            additionalDrugParameter = true;
+            loadInventoryData(dashboardContent, searchBar.getText());
+        });
         VBox dashboardContainer = new VBox(dashboardContent);
         return dashboardContainer;
     }
@@ -871,10 +922,16 @@ public class MainApp extends Application {
         return scrollPane;
     }
 
-    private void loadInventoryData(VBox dashboardContent) {
+    private void loadInventoryData(VBox dashboardContent, String addedParam) {
         new Thread(() -> {
             try {
                 URL url = new URL("http://localhost:8080/drugs");
+                if(addedParam == null){
+                    url = new URL("http://localhost:8080/drugs");
+                }
+                if (additionalDrugParameter){
+                    url = new URL("http://localhost:8080/drugs/"+ addedParam);
+                }
                 HttpURLConnection conn = (HttpURLConnection) url.openConnection();
                 conn.setRequestMethod("GET");
                 conn.setRequestProperty("Accept", "application/json");
@@ -987,6 +1044,8 @@ public class MainApp extends Application {
         searchBar.setPromptText("Search for drugs");
         searchBar.setPrefWidth(480 * 0.6);
         searchBar.setPrefHeight(30);
+        searchBar.setId("search-field");
+
         Button searchButton = new Button("Search");
         searchButton.setPrefHeight(30);
         searchButton.setId("search-btn");
@@ -1057,6 +1116,23 @@ public class MainApp extends Application {
         VBox purchaseHistoryContent = new VBox(10, dashboardTitle, searchContainer,gridPane, purchaseList);
         purchaseHistoryContent.setId("dash-content");
         purchaseHistoryContent.setPrefHeight(2000);
+        searchBar.textProperty().addListener(new ChangeListener<String>() {
+            @Override
+            public void changed(ObservableValue<? extends String> observableValue, String s, String t1) {
+                if(Objects.equals(searchBar.getText(), "")){
+                    additionalPurchaseParameter = false;
+                    loadHistoryData(purchaseHistoryContent, null);
+                }
+            }
+        });
+        searchButton.setOnAction(actionEvent -> {
+            if(Objects.equals(searchBar.getText(), "")){
+                additionalPurchaseParameter = false;
+                loadHistoryData(purchaseHistoryContent, null);
+            }
+            additionalPurchaseParameter = true;
+            loadHistoryData(purchaseHistoryContent, searchBar.getText());
+        });
         VBox purchaseHistoryContainer = new VBox(purchaseHistoryContent);
         return purchaseHistoryContainer;
     }
@@ -1068,10 +1144,16 @@ public class MainApp extends Application {
     }
 
 
-    private void loadHistoryData(VBox purchaseHistoryContent) {
+    private void loadHistoryData(VBox purchaseHistoryContent, String addedParam) {
         new Thread(() -> {
             try {
                 URL url = new URL("http://localhost:8080/purchase");
+                if(addedParam == null){
+                    url = new URL("http://localhost:8080/purchase");
+                }
+                if (additionalPurchaseParameter == true){
+                    url = new URL("http://localhost:8080/purchase/" + addedParam);
+                }
                 HttpURLConnection conn = (HttpURLConnection) url.openConnection();
                 conn.setRequestMethod("GET");
                 conn.setRequestProperty("Accept", "application/json");
